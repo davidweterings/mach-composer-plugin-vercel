@@ -207,13 +207,12 @@ type VercelAuthentication struct {
 var defaultProjectEnvironmentVariableTargets = []string{"development", "preview", "production"}
 
 type ProjectEnvironmentVariable struct {
-	Key                  string   `mapstructure:"key"`
-	Value                string   `mapstructure:"value"`
-	Target               []string `mapstructure:"target"`
-	CustomEnvironmentIDs []string `mapstructure:"custom_environment_ids"`
-	Comment              *string  `mapstructure:"comment"`
-	GitBranch            *string  `mapstructure:"git_branch"`
-	Sensitive            *bool    `mapstructure:"sensitive"`
+	Key       string   `mapstructure:"key"`
+	Value     string   `mapstructure:"value"`
+	Target    []string `mapstructure:"target"`
+	Comment   *string  `mapstructure:"comment"`
+	GitBranch *string  `mapstructure:"git_branch"`
+	Sensitive *bool    `mapstructure:"sensitive"`
 }
 
 func (c ProjectEnvironmentVariable) normalize() ProjectEnvironmentVariable {
@@ -222,16 +221,12 @@ func (c ProjectEnvironmentVariable) normalize() ProjectEnvironmentVariable {
 	normalized.Comment = normalizeOptionalString(normalized.Comment)
 	normalized.GitBranch = normalizeOptionalString(normalized.GitBranch)
 
-	switch {
-	case len(normalized.Target) > 0:
-		normalized.Target = append([]string(nil), normalized.Target...)
-	case len(normalized.CustomEnvironmentIDs) == 0:
+	if len(normalized.Target) == 0 {
 		normalized.Target = append([]string(nil), defaultProjectEnvironmentVariableTargets...)
+	} else {
+		normalized.Target = append([]string(nil), normalized.Target...)
 	}
-
-	normalized.CustomEnvironmentIDs = append([]string(nil), normalized.CustomEnvironmentIDs...)
 	sort.Strings(normalized.Target)
-	sort.Strings(normalized.CustomEnvironmentIDs)
 
 	return normalized
 }
@@ -257,14 +252,6 @@ func (c ProjectEnvironmentVariable) DisplayTarget() string {
 	}
 
 	return helpers.SerializeToHCL("target", c.Target)
-}
-
-func (c ProjectEnvironmentVariable) DisplayCustomEnvironmentIDs() string {
-	if len(c.CustomEnvironmentIDs) == 0 {
-		return ""
-	}
-
-	return helpers.SerializeToHCL("custom_environment_ids", c.CustomEnvironmentIDs)
 }
 
 func (c ProjectEnvironmentVariable) DisplayComment() string {
@@ -304,15 +291,7 @@ func MergeEnvironmentVariables(o []ProjectEnvironmentVariable, c []ProjectEnviro
 			for _, target := range normalized.Target {
 				entry := normalized
 				entry.Target = nil
-				entry.CustomEnvironmentIDs = nil
-				merged[normalized.Key]["target:"+target] = entry
-			}
-
-			for _, customEnvironmentID := range normalized.CustomEnvironmentIDs {
-				entry := normalized
-				entry.Target = nil
-				entry.CustomEnvironmentIDs = nil
-				merged[normalized.Key]["custom_environment_id:"+customEnvironmentID] = entry
+				merged[normalized.Key][target] = entry
 			}
 		}
 	}
@@ -329,27 +308,20 @@ func MergeEnvironmentVariables(o []ProjectEnvironmentVariable, c []ProjectEnviro
 
 	for _, key := range keys {
 		grouped := make(map[string]ProjectEnvironmentVariable)
-		selectors := make([]string, 0, len(merged[key]))
-		for selector := range merged[key] {
-			selectors = append(selectors, selector)
+		targets := make([]string, 0, len(merged[key]))
+		for target := range merged[key] {
+			targets = append(targets, target)
 		}
-		sort.Strings(selectors)
+		sort.Strings(targets)
 
-		for _, selector := range selectors {
-			env := merged[key][selector]
+		for _, target := range targets {
+			env := merged[key][target]
 			signature := env.payloadSignature()
 			group, exists := grouped[signature]
 			if !exists {
 				group = env
 			}
-
-			switch {
-			case strings.HasPrefix(selector, "target:"):
-				group.Target = append(group.Target, strings.TrimPrefix(selector, "target:"))
-			case strings.HasPrefix(selector, "custom_environment_id:"):
-				group.CustomEnvironmentIDs = append(group.CustomEnvironmentIDs, strings.TrimPrefix(selector, "custom_environment_id:"))
-			}
-
+			group.Target = append(group.Target, target)
 			grouped[signature] = group
 		}
 
@@ -362,7 +334,6 @@ func MergeEnvironmentVariables(o []ProjectEnvironmentVariable, c []ProjectEnviro
 		for _, signature := range signatures {
 			env := grouped[signature]
 			sort.Strings(env.Target)
-			sort.Strings(env.CustomEnvironmentIDs)
 			result = append(result, env)
 		}
 	}
@@ -377,10 +348,6 @@ func MergeEnvironmentVariables(o []ProjectEnvironmentVariable, c []ProjectEnviro
 		if diff := compareStringSlices(result[i].Target, result[j].Target); diff != 0 {
 			return diff < 0
 		}
-		if diff := compareStringSlices(result[i].CustomEnvironmentIDs, result[j].CustomEnvironmentIDs); diff != 0 {
-			return diff < 0
-		}
-
 		return result[i].payloadSignature() < result[j].payloadSignature()
 	})
 

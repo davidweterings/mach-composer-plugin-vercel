@@ -31,7 +31,6 @@ func TestSetVercelConfig(t *testing.T) {
 			GitBranch: stringPtr("feature/test"),
 			Sensitive: boolPtr(false),
 		},
-		{Key: "TEST_ENVIRONMENT_VARIABLE_4", Value: "testing", CustomEnvironmentIDs: []string{"env_custom_123"}},
 	}
 
 	projectDomains := []ProjectDomain{
@@ -116,8 +115,6 @@ func TestSetVercelConfig(t *testing.T) {
 	assert.Contains(t, component.Variables, "comment = \"Used for preview branch deploys\"")
 	assert.Contains(t, component.Variables, "git_branch = \"feature/test\"")
 	assert.Contains(t, component.Variables, "sensitive = false")
-	assert.Contains(t, component.Variables, "custom_environment_ids = [\"env_custom_123\"]")
-	assert.NotContains(t, component.Variables, "environment =")
 
 	// Test domains
 	assert.Contains(t, component.Variables, "domain = \"test-domain.com\"")
@@ -423,7 +420,7 @@ func TestExtendEnvironmentVariables(t *testing.T) {
 	}
 
 	siteEnvironmentVariables := []ProjectEnvironmentVariable{
-		{Key: "TEST_EXTEND_VARIABLE", Value: "testing", CustomEnvironmentIDs: []string{"env_acceptance"}},
+		{Key: "TEST_EXTEND_VARIABLE", Value: "testing", Target: []string{"preview"}},
 	}
 	siteVariables := make([]interface{}, len(siteEnvironmentVariables))
 	for i, s := range siteEnvironmentVariables {
@@ -451,12 +448,12 @@ func TestExtendEnvironmentVariables(t *testing.T) {
 	component, err := plugin.RenderTerraformComponent("my-site", "test-component")
 	require.NoError(t, err)
 
-	// Should only contain the site extended variable content
+	// Should contain both global and site variable content
 	assert.Contains(t, component.Variables, "key = \"TEST_EXTEND_VARIABLE\"")
 	assert.Contains(t, component.Variables, "value = \"test\"")
 	assert.Contains(t, component.Variables, "target = [\"production\"]")
 	assert.Contains(t, component.Variables, "value = \"testing\"")
-	assert.Contains(t, component.Variables, "custom_environment_ids = [\"env_acceptance\"]")
+	assert.Contains(t, component.Variables, "target = [\"preview\"]")
 }
 
 func TestMergeEnvironmentVariables(t *testing.T) {
@@ -565,7 +562,7 @@ func TestUpsertEnvironmentVariables(t *testing.T) {
 func TestRenderTerraformComponentOmitsUnsetEnvironmentVariableFields(t *testing.T) {
 	environmentVariables := []ProjectEnvironmentVariable{
 		{Key: "DEFAULT_TARGET", Value: "testing"},
-		{Key: "CUSTOM_ONLY", Value: "testing", CustomEnvironmentIDs: []string{"env_custom_456"}},
+		{Key: "EXPLICIT_TARGET", Value: "testing", Target: []string{"production"}},
 	}
 	variables := make([]interface{}, len(environmentVariables))
 	for i, s := range environmentVariables {
@@ -585,13 +582,11 @@ func TestRenderTerraformComponentOmitsUnsetEnvironmentVariableFields(t *testing.
 	require.NoError(t, err)
 
 	assert.Contains(t, component.Variables, "target = [\"development\", \"preview\", \"production\"]")
-	assert.Contains(t, component.Variables, "custom_environment_ids = [\"env_custom_456\"]")
-	assert.NotContains(t, component.Variables, "environment =")
+	assert.Contains(t, component.Variables, "target = [\"production\"]")
 	assert.NotContains(t, component.Variables, "comment = \"\"")
 	assert.NotContains(t, component.Variables, "git_branch = \"\"")
 	assert.NotContains(t, component.Variables, "sensitive = false")
 	assert.NotContains(t, component.Variables, "target = null")
-	assert.NotContains(t, component.Variables, "custom_environment_ids = null")
 }
 
 func TestRenderTerraformComponentRejectsNonPreviewGitBranch(t *testing.T) {

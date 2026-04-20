@@ -170,16 +170,4 @@ func TestMergeList(t *testing.T) {
 		assert.ElementsMatch(t, []string{"development", "preview", "production"}, result[0].Target)
 	})
 
-	t.Run("custom environment ids do not default target", func(t *testing.T) {
-		child := []ProjectEnvironmentVariable{
-			{Key: "CUSTOM_ENV", Value: "true", CustomEnvironmentIDs: []string{"env_custom"}},
-		}
-
-		result := MergeEnvironmentVariables([]ProjectEnvironmentVariable{}, child)
-
-		assert.Len(t, result, 1)
-		assert.Empty(t, result[0].Target)
-		assert.ElementsMatch(t, []string{"env_custom"}, result[0].CustomEnvironmentIDs)
-	})
-
 }

@@ -217,7 +217,6 @@ func (p *VercelPlugin) RenderTerraformComponent(site string, component string) (
 				{{ renderProperty "key" .Key }}
 				{{ renderProperty "value" .Value }}
 				{{ .DisplayTarget }}
-				{{ .DisplayCustomEnvironmentIDs }}
 				{{ .DisplayComment }}
 				{{ .DisplayGitBranch }}
 				{{ .DisplaySensitive }}
