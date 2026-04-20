@@ -43,6 +43,7 @@ func TestSetVercelConfig(t *testing.T) {
 			"build_command":                "next build",
 			"ignore_command":               "if [ $VERCEL_ENV == 'production' ]; then exit 1; else exit 0; fi",
 			"root_directory":               "./my-project",
+			"node_version":                 "24.x",
 			"manual_production_deployment": true,
 			"git_repository": map[string]any{
 				"production_branch": "main",
@@ -84,6 +85,7 @@ func TestSetVercelConfig(t *testing.T) {
 	assert.Contains(t, component.Variables, "build_command = \"next build\"")
 	assert.Contains(t, component.Variables, "ignore_command = \"if [ $VERCEL_ENV == 'production' ]; then exit 1; else exit 0; fi\"")
 	assert.Contains(t, component.Variables, "root_directory = \"./my-project\"")
+	assert.Contains(t, component.Variables, "node_version = \"24.x\"")
 	assert.Contains(t, component.Variables, "vercel_team_id = \"test-team\"")
 	assert.Contains(t, component.Variables, "manual_production_deployment = true")
 	assert.Contains(t, component.Variables, "production_branch = \"main\"")
@@ -600,4 +602,250 @@ func TestCompleteInheritance(t *testing.T) {
 	assert.Contains(t, component.Variables, "type = \"github\"")
 	assert.Contains(t, component.Variables, "production_branch = \"production\"")
 	assert.Contains(t, component.Variables, "vercel_project_manual_production_deployment = true")
+}
+
+func TestManualProductionDeploymentBehavior(t *testing.T) {
+	t.Run("defaults to false when not specified", func(t *testing.T) {
+		plugin := NewVercelPlugin()
+
+		data := map[string]any{
+			"team_id":   "test-team",
+			"api_token": "test-token",
+			"project_config": map[string]any{
+				"framework": "nextjs",
+			},
+		}
+
+		err := plugin.SetSiteConfig("my-site", data)
+		require.NoError(t, err)
+
+		component, err := plugin.RenderTerraformComponent("my-site", "test-component")
+		require.NoError(t, err)
+
+		assert.Contains(t, component.Variables, "vercel_project_manual_production_deployment = false")
+	})
+
+	t.Run("explicit false is preserved", func(t *testing.T) {
+		plugin := NewVercelPlugin()
+
+		data := map[string]any{
+			"team_id":   "test-team",
+			"api_token": "test-token",
+			"project_config": map[string]any{
+				"framework":                    "nextjs",
+				"manual_production_deployment": false,
+			},
+		}
+
+		err := plugin.SetSiteConfig("my-site", data)
+		require.NoError(t, err)
+
+		component, err := plugin.RenderTerraformComponent("my-site", "test-component")
+		require.NoError(t, err)
+
+		assert.Contains(t, component.Variables, "vercel_project_manual_production_deployment = false")
+	})
+
+	t.Run("inheritance: child overrides parent", func(t *testing.T) {
+		plugin := NewVercelPlugin()
+
+		globalData := map[string]any{
+			"team_id":   "test-team",
+			"api_token": "test-token",
+			"project_config": map[string]any{
+				"manual_production_deployment": false,
+			},
+		}
+
+		siteData := map[string]any{
+			"project_config": map[string]any{
+				"manual_production_deployment": true,
+			},
+		}
+
+		err := plugin.SetGlobalConfig(globalData)
+		require.NoError(t, err)
+
+		err = plugin.SetSiteConfig("my-site", siteData)
+		require.NoError(t, err)
+
+		component, err := plugin.RenderTerraformComponent("my-site", "test-component")
+		require.NoError(t, err)
+
+		assert.Contains(t, component.Variables, "vercel_project_manual_production_deployment = true")
+	})
+
+	t.Run("inheritance: inherits false when not specified", func(t *testing.T) {
+		plugin := NewVercelPlugin()
+
+		globalData := map[string]any{
+			"team_id":   "test-team",
+			"api_token": "test-token",
+			"project_config": map[string]any{
+				"manual_production_deployment": false,
+			},
+		}
+
+		siteData := map[string]any{
+			"project_config": map[string]any{
+				"framework": "nextjs",
+			},
+		}
+
+		err := plugin.SetGlobalConfig(globalData)
+		require.NoError(t, err)
+
+		err = plugin.SetSiteConfig("my-site", siteData)
+		require.NoError(t, err)
+
+		component, err := plugin.RenderTerraformComponent("my-site", "test-component")
+		require.NoError(t, err)
+
+		assert.Contains(t, component.Variables, "vercel_project_manual_production_deployment = false")
+	})
+
+	t.Run("inheritance: inherits true when not specified", func(t *testing.T) {
+		plugin := NewVercelPlugin()
+
+		globalData := map[string]any{
+			"team_id":   "test-team",
+			"api_token": "test-token",
+			"project_config": map[string]any{
+				"manual_production_deployment": true,
+			},
+		}
+
+		siteData := map[string]any{
+			"project_config": map[string]any{
+				"framework": "nextjs",
+			},
+		}
+
+		err := plugin.SetGlobalConfig(globalData)
+		require.NoError(t, err)
+
+		err = plugin.SetSiteConfig("my-site", siteData)
+		require.NoError(t, err)
+
+		component, err := plugin.RenderTerraformComponent("my-site", "test-component")
+		require.NoError(t, err)
+
+		assert.Contains(t, component.Variables, "vercel_project_manual_production_deployment = true")
+	})
+}
+
+func TestNodeVersionInheritance(t *testing.T) {
+	t.Run("node_version set at site level", func(t *testing.T) {
+		plugin := NewVercelPlugin()
+
+		siteData := map[string]any{
+			"team_id":   "test-team",
+			"api_token": "test-token",
+			"project_config": map[string]any{
+				"framework":    "nextjs",
+				"node_version": "20.x",
+			},
+		}
+
+		err := plugin.SetSiteConfig("my-site", siteData)
+		require.NoError(t, err)
+
+		component, err := plugin.RenderTerraformComponent("my-site", "test-component")
+		require.NoError(t, err)
+
+		assert.Contains(t, component.Variables, "vercel_project_node_version = \"20.x\"")
+	})
+
+	t.Run("component overrides site node_version", func(t *testing.T) {
+		plugin := NewVercelPlugin()
+
+		siteData := map[string]any{
+			"team_id":   "test-team",
+			"api_token": "test-token",
+			"project_config": map[string]any{
+				"framework":    "nextjs",
+				"node_version": "18.x",
+			},
+		}
+
+		componentData := map[string]any{
+			"project_config": map[string]any{
+				"node_version": "20.x",
+			},
+		}
+
+		err := plugin.SetSiteConfig("my-site", siteData)
+		require.NoError(t, err)
+
+		err = plugin.SetSiteComponentConfig("my-site", "test-component", componentData)
+		require.NoError(t, err)
+
+		component, err := plugin.RenderTerraformComponent("my-site", "test-component")
+		require.NoError(t, err)
+
+		assert.Contains(t, component.Variables, "vercel_project_node_version = \"20.x\"")
+		assert.NotContains(t, component.Variables, "vercel_project_node_version = \"18.x\"")
+	})
+
+	t.Run("global to site to component inheritance", func(t *testing.T) {
+		plugin := NewVercelPlugin()
+
+		globalData := map[string]any{
+			"team_id":   "test-team",
+			"api_token": "test-token",
+			"project_config": map[string]any{
+				"node_version": "16.x",
+			},
+		}
+
+		siteData := map[string]any{
+			"project_config": map[string]any{
+				"framework": "nextjs",
+			},
+		}
+
+		componentData := map[string]any{
+			"project_config": map[string]any{
+				"node_version": "20.x",
+			},
+		}
+
+		err := plugin.SetGlobalConfig(globalData)
+		require.NoError(t, err)
+
+		err = plugin.SetSiteConfig("my-site", siteData)
+		require.NoError(t, err)
+
+		err = plugin.SetSiteComponentConfig("my-site", "test-component", componentData)
+		require.NoError(t, err)
+
+		component, err := plugin.RenderTerraformComponent("my-site", "test-component")
+		require.NoError(t, err)
+
+		assert.Contains(t, component.Variables, "vercel_project_node_version = \"20.x\"")
+		assert.NotContains(t, component.Variables, "vercel_project_node_version = \"16.x\"")
+	})
+
+	t.Run("empty node_version is not rendered", func(t *testing.T) {
+		plugin := NewVercelPlugin()
+
+		siteData := map[string]any{
+			"team_id":   "test-team",
+			"api_token": "test-token",
+			"project_config": map[string]any{
+				"framework": "nextjs",
+				// node_version is not specified
+			},
+		}
+
+		err := plugin.SetSiteConfig("my-site", siteData)
+		require.NoError(t, err)
+
+		component, err := plugin.RenderTerraformComponent("my-site", "test-component")
+		require.NoError(t, err)
+
+		// Should not contain node_version variable when empty
+		assert.Contains(t, component.Variables, "vercel_team_id = \"test-team\"")
+		assert.NotContains(t, component.Variables, "vercel_project_node_version")
+	})
 }

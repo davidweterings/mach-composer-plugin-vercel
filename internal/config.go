@@ -58,13 +58,14 @@ func (c *VercelConfig) extendConfig(o *VercelConfig) *VercelConfig {
 type ProjectConfig struct {
 	Name                          string                       `mapstructure:"name"`
 	Framework                     string                       `mapstructure:"framework"`
-	ManualProductionDeployment    bool                         `mapstructure:"manual_production_deployment"`
+	ManualProductionDeployment    *bool                        `mapstructure:"manual_production_deployment"`
 	ServerlessFunctionRegion      string                       `mapstructure:"serverless_function_region"`
 	EnvironmentVariables          []ProjectEnvironmentVariable `mapstructure:"environment_variables"`
 	GitRepository                 GitRepository                `mapstructure:"git_repository"`
 	BuildCommand                  string                       `mapstructure:"build_command"`
 	IgnoreCommand                 string                       `mapstructure:"ignore_command"`
 	RootDirectory                 string                       `mapstructure:"root_directory"`
+	NodeVersion                   string                       `mapstructure:"node_version"`
 	ProjectDomains                []ProjectDomain              `mapstructure:"domains"`
 	ProtectionBypassForAutomation bool                         `mapstructure:"protection_bypass_for_automation"`
 	PasswordProtection            PasswordProtection           `mapstructure:"password_protection"`
@@ -80,6 +81,7 @@ func (c *ProjectConfig) extendConfig(o *ProjectConfig) *ProjectConfig {
 			BuildCommand:                  o.BuildCommand,
 			IgnoreCommand:                 o.IgnoreCommand,
 			RootDirectory:                 o.RootDirectory,
+			NodeVersion:                   o.NodeVersion,
 			ManualProductionDeployment:    o.ManualProductionDeployment,
 			EnvironmentVariables:          o.EnvironmentVariables,
 			GitRepository:                 o.GitRepository,
@@ -113,7 +115,11 @@ func (c *ProjectConfig) extendConfig(o *ProjectConfig) *ProjectConfig {
 			cfg.RootDirectory = c.RootDirectory
 		}
 
-		if c.ManualProductionDeployment != o.ManualProductionDeployment {
+		if c.NodeVersion != "" {
+			cfg.NodeVersion = c.NodeVersion
+		}
+
+		if c.ManualProductionDeployment != nil {
 			cfg.ManualProductionDeployment = c.ManualProductionDeployment
 		}
 
