@@ -22,7 +22,7 @@ func TestSetVercelConfig(t *testing.T) {
 	// inability to cast this to a []map[string]interface{}.
 	environmentVariables := []ProjectEnvironmentVariable{
 		{Key: "TEST_ENVIRONMENT_VARIABLE", Value: "testing"},
-		{Key: "TEST_ENVIRONMENT_VARIABLE_2", Value: "testing", Environment: []string{"production", "preview"}},
+		{Key: "TEST_ENVIRONMENT_VARIABLE_2", Value: "testing", Target: []string{"production", "preview"}},
 		{
 			Key:       "TEST_ENVIRONMENT_VARIABLE_3",
 			Value:     "testing",
@@ -126,8 +126,8 @@ func TestSetVercelConfig(t *testing.T) {
 
 func TestInheritance(t *testing.T) {
 	globalEnvironmentVariables := []ProjectEnvironmentVariable{
-		{Key: "TEST_ENVIRONMENT_VARIABLE", Value: "testing", Environment: []string{}},
-		{Key: "TEST_EXTEND_VARIABLE", Value: "test", Environment: []string{"production"}},
+		{Key: "TEST_ENVIRONMENT_VARIABLE", Value: "testing", Target: []string{}},
+		{Key: "TEST_EXTEND_VARIABLE", Value: "test", Target: []string{"production"}},
 	}
 	globalVariables := make([]interface{}, len(globalEnvironmentVariables))
 	for i, s := range globalEnvironmentVariables {
@@ -151,8 +151,8 @@ func TestInheritance(t *testing.T) {
 	}
 
 	siteEnvironmentVariables := []ProjectEnvironmentVariable{
-		{Key: "TEST_ENVIRONMENT_VARIABLE_2", Value: "testing", Environment: []string{"production", "preview"}},
-		{Key: "TEST_EXTEND_VARIABLE", Value: "testing", Environment: []string{"production", "preview", "development"}},
+		{Key: "TEST_ENVIRONMENT_VARIABLE_2", Value: "testing", Target: []string{"production", "preview"}},
+		{Key: "TEST_EXTEND_VARIABLE", Value: "testing", Target: []string{"production", "preview", "development"}},
 	}
 	siteVariables := make([]interface{}, len(siteEnvironmentVariables))
 	for i, s := range siteEnvironmentVariables {
@@ -202,8 +202,8 @@ func TestInheritance(t *testing.T) {
 
 func TestSiteComponentInheritance(t *testing.T) {
 	siteEnvironmentVariables := []ProjectEnvironmentVariable{
-		{Key: "TEST_ENVIRONMENT_VARIABLE_2", Value: "testing", Environment: []string{"production", "preview"}},
-		{Key: "TEST_EXTEND_VARIABLE", Value: "testing", Environment: []string{"production", "preview", "development"}},
+		{Key: "TEST_ENVIRONMENT_VARIABLE_2", Value: "testing", Target: []string{"production", "preview"}},
+		{Key: "TEST_EXTEND_VARIABLE", Value: "testing", Target: []string{"production", "preview", "development"}},
 	}
 	siteVariables := make([]interface{}, len(siteEnvironmentVariables))
 	for i, s := range siteEnvironmentVariables {
@@ -265,8 +265,8 @@ func TestSiteComponentInheritance(t *testing.T) {
 
 func TestGlobalInheritance(t *testing.T) {
 	globalEnvironmentVariables := []ProjectEnvironmentVariable{
-		{Key: "TEST_ENVIRONMENT_VARIABLE", Value: "testing", Environment: []string{}},
-		{Key: "TEST_EXTEND_VARIABLE", Value: "test", Environment: []string{"production"}},
+		{Key: "TEST_ENVIRONMENT_VARIABLE", Value: "testing", Target: []string{}},
+		{Key: "TEST_EXTEND_VARIABLE", Value: "test", Target: []string{"production"}},
 	}
 	globalVariables := make([]interface{}, len(globalEnvironmentVariables))
 	for i, s := range globalEnvironmentVariables {
@@ -290,8 +290,8 @@ func TestGlobalInheritance(t *testing.T) {
 	}
 
 	siteEnvironmentVariables := []ProjectEnvironmentVariable{
-		{Key: "TEST_ENVIRONMENT_VARIABLE_2", Value: "testing", Environment: []string{"production", "preview"}},
-		{Key: "TEST_EXTEND_VARIABLE", Value: "testing", Environment: []string{"production", "preview", "development"}},
+		{Key: "TEST_ENVIRONMENT_VARIABLE_2", Value: "testing", Target: []string{"production", "preview"}},
+		{Key: "TEST_EXTEND_VARIABLE", Value: "testing", Target: []string{"production", "preview", "development"}},
 	}
 	siteVariables := make([]interface{}, len(siteEnvironmentVariables))
 	for i, s := range siteEnvironmentVariables {
@@ -334,8 +334,8 @@ func TestGlobalInheritance(t *testing.T) {
 
 func TestSitePriorityOverGlobalInheritance(t *testing.T) {
 	globalEnvironmentVariables := []ProjectEnvironmentVariable{
-		{Key: "TEST_ENVIRONMENT_VARIABLE", Value: "testing", Environment: []string{}},
-		{Key: "TEST_EXTEND_VARIABLE", Value: "test", Environment: []string{"production"}},
+		{Key: "TEST_ENVIRONMENT_VARIABLE", Value: "testing", Target: []string{}},
+		{Key: "TEST_EXTEND_VARIABLE", Value: "test", Target: []string{"production"}},
 	}
 	globalVariables := make([]interface{}, len(globalEnvironmentVariables))
 	for i, s := range globalEnvironmentVariables {
@@ -359,8 +359,8 @@ func TestSitePriorityOverGlobalInheritance(t *testing.T) {
 	}
 
 	siteEnvironmentVariables := []ProjectEnvironmentVariable{
-		{Key: "TEST_ENVIRONMENT_VARIABLE_2", Value: "testing", Environment: []string{"production", "preview"}},
-		{Key: "TEST_EXTEND_VARIABLE", Value: "testing", Environment: []string{"production", "preview", "development"}},
+		{Key: "TEST_ENVIRONMENT_VARIABLE_2", Value: "testing", Target: []string{"production", "preview"}},
+		{Key: "TEST_EXTEND_VARIABLE", Value: "testing", Target: []string{"production", "preview", "development"}},
 	}
 	siteVariables := make([]interface{}, len(siteEnvironmentVariables))
 	for i, s := range siteEnvironmentVariables {
@@ -407,7 +407,7 @@ func TestSitePriorityOverGlobalInheritance(t *testing.T) {
 
 func TestExtendEnvironmentVariables(t *testing.T) {
 	globalEnvironmentVariables := []ProjectEnvironmentVariable{
-		{Key: "TEST_EXTEND_VARIABLE", Value: "test", Environment: []string{"production"}},
+		{Key: "TEST_EXTEND_VARIABLE", Value: "test", Target: []string{"production"}},
 	}
 	globalVariables := make([]interface{}, len(globalEnvironmentVariables))
 	for i, s := range globalEnvironmentVariables {
@@ -461,7 +461,7 @@ func TestExtendEnvironmentVariables(t *testing.T) {
 
 func TestMergeEnvironmentVariables(t *testing.T) {
 	globalEnvironmentVariables := []ProjectEnvironmentVariable{
-		{Key: "TEST_EXTEND_VARIABLE", Value: "test", Environment: []string{"production"}},
+		{Key: "TEST_EXTEND_VARIABLE", Value: "test", Target: []string{"production"}},
 	}
 	globalVariables := make([]interface{}, len(globalEnvironmentVariables))
 	for i, s := range globalEnvironmentVariables {
@@ -477,7 +477,7 @@ func TestMergeEnvironmentVariables(t *testing.T) {
 	}
 
 	siteEnvironmentVariables := []ProjectEnvironmentVariable{
-		{Key: "TEST_EXTEND_VARIABLE", Value: "test", Environment: []string{"preview", "development"}},
+		{Key: "TEST_EXTEND_VARIABLE", Value: "test", Target: []string{"preview", "development"}},
 	}
 	siteVariables := make([]interface{}, len(siteEnvironmentVariables))
 	for i, s := range siteEnvironmentVariables {
@@ -513,7 +513,7 @@ func TestMergeEnvironmentVariables(t *testing.T) {
 
 func TestUpsertEnvironmentVariables(t *testing.T) {
 	globalEnvironmentVariables := []ProjectEnvironmentVariable{
-		{Key: "TEST_EXTEND_VARIABLE", Value: "test", Environment: []string{"production"}},
+		{Key: "TEST_EXTEND_VARIABLE", Value: "test", Target: []string{"production"}},
 	}
 	globalVariables := make([]interface{}, len(globalEnvironmentVariables))
 	for i, s := range globalEnvironmentVariables {
@@ -529,7 +529,7 @@ func TestUpsertEnvironmentVariables(t *testing.T) {
 	}
 
 	siteEnvironmentVariables := []ProjectEnvironmentVariable{
-		{Key: "TEST_EXTEND_VARIABLE", Value: "testing", Environment: []string{"production"}},
+		{Key: "TEST_EXTEND_VARIABLE", Value: "testing", Target: []string{"production"}},
 	}
 	siteVariables := make([]interface{}, len(siteEnvironmentVariables))
 	for i, s := range siteEnvironmentVariables {

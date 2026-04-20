@@ -210,7 +210,6 @@ type ProjectEnvironmentVariable struct {
 	Key                  string   `mapstructure:"key"`
 	Value                string   `mapstructure:"value"`
 	Target               []string `mapstructure:"target"`
-	Environment          []string `mapstructure:"environment"`
 	CustomEnvironmentIDs []string `mapstructure:"custom_environment_ids"`
 	Comment              *string  `mapstructure:"comment"`
 	GitBranch            *string  `mapstructure:"git_branch"`
@@ -226,8 +225,6 @@ func (c ProjectEnvironmentVariable) normalize() ProjectEnvironmentVariable {
 	switch {
 	case len(normalized.Target) > 0:
 		normalized.Target = append([]string(nil), normalized.Target...)
-	case len(normalized.Environment) > 0:
-		normalized.Target = append([]string(nil), normalized.Environment...)
 	case len(normalized.CustomEnvironmentIDs) == 0:
 		normalized.Target = append([]string(nil), defaultProjectEnvironmentVariableTargets...)
 	}
@@ -235,7 +232,6 @@ func (c ProjectEnvironmentVariable) normalize() ProjectEnvironmentVariable {
 	normalized.CustomEnvironmentIDs = append([]string(nil), normalized.CustomEnvironmentIDs...)
 	sort.Strings(normalized.Target)
 	sort.Strings(normalized.CustomEnvironmentIDs)
-	normalized.Environment = nil
 
 	return normalized
 }

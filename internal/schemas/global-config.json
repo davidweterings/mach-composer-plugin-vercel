@@ -35,12 +35,6 @@
               "value": {
                 "type": "string"
               },
-              "environment": {
-                "type": "array",
-                "items": {
-                  "type": "string"
-                }
-              },
               "target": {
                 "type": "array",
                 "items": {

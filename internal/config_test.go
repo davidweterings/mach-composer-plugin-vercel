@@ -14,7 +14,7 @@ func TestMergeList(t *testing.T) {
 
 	t.Run("only parent variables", func(t *testing.T) {
 		parent := []ProjectEnvironmentVariable{
-			{Key: "API_URL", Value: "https://api.example.com", Environment: []string{"production", "preview"}},
+			{Key: "API_URL", Value: "https://api.example.com", Target: []string{"production", "preview"}},
 		}
 		result := MergeEnvironmentVariables(parent, []ProjectEnvironmentVariable{})
 
@@ -26,7 +26,7 @@ func TestMergeList(t *testing.T) {
 
 	t.Run("only child variables", func(t *testing.T) {
 		child := []ProjectEnvironmentVariable{
-			{Key: "DEBUG", Value: "true", Environment: []string{"development"}},
+			{Key: "DEBUG", Value: "true", Target: []string{"development"}},
 		}
 		result := MergeEnvironmentVariables([]ProjectEnvironmentVariable{}, child)
 
@@ -38,10 +38,10 @@ func TestMergeList(t *testing.T) {
 
 	t.Run("child overrides parent for specific environment", func(t *testing.T) {
 		parent := []ProjectEnvironmentVariable{
-			{Key: "API_URL", Value: "https://api.example.com", Environment: []string{"production", "preview"}},
+			{Key: "API_URL", Value: "https://api.example.com", Target: []string{"production", "preview"}},
 		}
 		child := []ProjectEnvironmentVariable{
-			{Key: "API_URL", Value: "https://api-test.example.com", Environment: []string{"preview"}},
+			{Key: "API_URL", Value: "https://api-test.example.com", Target: []string{"preview"}},
 		}
 
 		result := MergeEnvironmentVariables(parent, child)
@@ -67,10 +67,10 @@ func TestMergeList(t *testing.T) {
 
 	t.Run("child adds new environments to existing key", func(t *testing.T) {
 		parent := []ProjectEnvironmentVariable{
-			{Key: "FEATURE_FLAG", Value: "true", Environment: []string{"production"}},
+			{Key: "FEATURE_FLAG", Value: "true", Target: []string{"production"}},
 		}
 		child := []ProjectEnvironmentVariable{
-			{Key: "FEATURE_FLAG", Value: "true", Environment: []string{"preview"}},
+			{Key: "FEATURE_FLAG", Value: "true", Target: []string{"preview"}},
 		}
 
 		result := MergeEnvironmentVariables(parent, child)
@@ -83,15 +83,15 @@ func TestMergeList(t *testing.T) {
 
 	t.Run("complex case with multiple variables and environments", func(t *testing.T) {
 		parent := []ProjectEnvironmentVariable{
-			{Key: "API_URL", Value: "https://api.example.com", Environment: []string{"production", "preview"}},
-			{Key: "DEBUG", Value: "false", Environment: []string{"production"}},
-			{Key: "DEBUG", Value: "true", Environment: []string{"development"}},
+			{Key: "API_URL", Value: "https://api.example.com", Target: []string{"production", "preview"}},
+			{Key: "DEBUG", Value: "false", Target: []string{"production"}},
+			{Key: "DEBUG", Value: "true", Target: []string{"development"}},
 		}
 
 		child := []ProjectEnvironmentVariable{
-			{Key: "API_URL", Value: "https://api-test.example.com", Environment: []string{"preview"}},
-			{Key: "DEBUG", Value: "false", Environment: []string{"preview"}}, // Adding preview with same value as production
-			{Key: "NEW_VAR", Value: "hello", Environment: []string{"production", "preview", "development"}},
+			{Key: "API_URL", Value: "https://api-test.example.com", Target: []string{"preview"}},
+			{Key: "DEBUG", Value: "false", Target: []string{"preview"}}, // Adding preview with same value as production
+			{Key: "NEW_VAR", Value: "hello", Target: []string{"production", "preview", "development"}},
 		}
 
 		result := MergeEnvironmentVariables(parent, child)
@@ -132,7 +132,7 @@ func TestMergeList(t *testing.T) {
 
 	t.Run("only parent variables with empty environment", func(t *testing.T) {
 		parent := []ProjectEnvironmentVariable{
-			{Key: "API_URL", Value: "https://api.example.com", Environment: []string{}},
+			{Key: "API_URL", Value: "https://api.example.com", Target: []string{}},
 		}
 		result := MergeEnvironmentVariables(parent, []ProjectEnvironmentVariable{})
 
@@ -144,7 +144,7 @@ func TestMergeList(t *testing.T) {
 
 	t.Run("only child variables with empty environment", func(t *testing.T) {
 		child := []ProjectEnvironmentVariable{
-			{Key: "DEBUG", Value: "true", Environment: []string{}},
+			{Key: "DEBUG", Value: "true", Target: []string{}},
 		}
 		result := MergeEnvironmentVariables([]ProjectEnvironmentVariable{}, child)
 
@@ -156,10 +156,10 @@ func TestMergeList(t *testing.T) {
 
 	t.Run("child adds new environments to existing key with empty environment", func(t *testing.T) {
 		parent := []ProjectEnvironmentVariable{
-			{Key: "FEATURE_FLAG", Value: "true", Environment: []string{"production"}},
+			{Key: "FEATURE_FLAG", Value: "true", Target: []string{"production"}},
 		}
 		child := []ProjectEnvironmentVariable{
-			{Key: "FEATURE_FLAG", Value: "true", Environment: []string{}},
+			{Key: "FEATURE_FLAG", Value: "true", Target: []string{}},
 		}
 
 		result := MergeEnvironmentVariables(parent, child)
@@ -182,14 +182,4 @@ func TestMergeList(t *testing.T) {
 		assert.ElementsMatch(t, []string{"env_custom"}, result[0].CustomEnvironmentIDs)
 	})
 
-	t.Run("target takes precedence over legacy environment", func(t *testing.T) {
-		child := []ProjectEnvironmentVariable{
-			{Key: "OVERRIDE", Value: "true", Target: []string{"preview"}, Environment: []string{"production"}},
-		}
-
-		result := MergeEnvironmentVariables([]ProjectEnvironmentVariable{}, child)
-
-		assert.Len(t, result, 1)
-		assert.ElementsMatch(t, []string{"preview"}, result[0].Target)
-	})
 }
