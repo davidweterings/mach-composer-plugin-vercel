@@ -4,5 +4,5 @@ mach-composer-plugin-*
 # Coverage file
 *.out
 
-.idea/
-.claude/
+.idea
+.claude

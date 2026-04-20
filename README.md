@@ -27,7 +27,12 @@ global:
         environment_variables:
             - key: CUSTOM_GLOBAL_ENVIRONMENT_VARIABLE
               value: custom
-              environments: ["production"] # When left empty it will default to ["production", "preview", "development"]
+              environment: ["production"] # When left empty it will default to ["production", "preview", "development"]
+              target: ["production"] # The environments the variable should be present on
+              comment: "A custom global variable"
+              sensitive: false
+              git_branch: "main"
+              custom_environment_ids: ["env_123"]
 sites:
     - identifier: my-site
       # ...
@@ -50,7 +55,8 @@ sites:
                 environment_variables:
                     - key: CUSTOM_COMPONENT_SPECIFIC_ENVIRONMENT_VARIABLE
                       value: custom
-                      environments: ["preview"]
+                      environment: ["preview"]
+                      sensitive: true
                 domains:
                   - domain: "cool-plugin.com"
                     git_branch: main
