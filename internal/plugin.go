@@ -20,7 +20,7 @@ type VercelPlugin struct {
 
 func NewVercelPlugin() schema.MachComposerPlugin {
 	state := &VercelPlugin{
-		provider:    "1.12.0", // Provider version of `vercel/vercel`
+		provider:    "4.7.1", // Provider version of `vercel/vercel`
 		siteConfigs: map[string]*VercelConfig{},
 	}
 	return plugin.NewPlugin(&schema.PluginSchema{
@@ -212,6 +212,11 @@ func (p *VercelPlugin) RenderTerraformComponent(site string, component string) (
 				{{ renderProperty "key" .Key }}
 				{{ renderProperty "value" .Value }}
 				{{ .DisplayEnvironments }}
+				{{ renderProperty "comment" .Comment }}
+				{{ .DisplayCustomEnvironmentIDs }}
+				{{ renderProperty "git_branch" .GitBranch }}
+				{{ renderProperty "sensitive" .Sensitive }}
+				{{ .DisplayTarget }}
 			},{{end}}
 		]
 		vercel_project_domains = [{{range .ProjectConfig.ProjectDomains }}

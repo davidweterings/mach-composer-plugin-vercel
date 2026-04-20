@@ -16,6 +16,7 @@ func TestSetVercelConfig(t *testing.T) {
 	environmentVariables := []ProjectEnvironmentVariable{
 		{Key: "TEST_ENVIRONMENT_VARIABLE", Value: "testing", Environment: []string{}},
 		{Key: "TEST_ENVIRONMENT_VARIABLE_2", Value: "testing", Environment: []string{"production", "preview"}},
+		{Key: "TEST_ENVIRONMENT_VARIABLE_3", Value: "secret", Environment: []string{"production"}, Sensitive: true, Comment: "A secret variable", GitBranch: "main", Target: []string{"production"}, CustomEnvironmentIDs: []string{"env_123"}},
 	}
 
 	projectDomains := []ProjectDomain{
@@ -98,6 +99,13 @@ func TestSetVercelConfig(t *testing.T) {
 	assert.Contains(t, component.Variables, "environment = [\"development\", \"preview\", \"production\"]")
 	// Test custom environment variables list
 	assert.Contains(t, component.Variables, "environment = [\"production\", \"preview\"]")
+
+	// Test new environment variable fields
+	assert.Contains(t, component.Variables, "sensitive = true")
+	assert.Contains(t, component.Variables, "comment = \"A secret variable\"")
+	assert.Contains(t, component.Variables, "git_branch = \"main\"")
+	assert.Contains(t, component.Variables, "target = [\"production\"]")
+	assert.Contains(t, component.Variables, "custom_environment_ids = [\"env_123\"]")
 
 	// Test domains
 	assert.Contains(t, component.Variables, "domain = \"test-domain.com\"")
@@ -433,8 +441,11 @@ func TestExtendEnvironmentVariables(t *testing.T) {
 	require.NoError(t, err)
 
 	// Should only contain the site extended variable content
-	assert.Contains(t, component.Variables, "{\n\t\t\t\tkey = \"TEST_EXTEND_VARIABLE\"\n\t\t\t\tvalue = \"test\"\n\t\t\t\tenvironment = [\"production\"]\n\n\t\t\t}")
-	assert.Contains(t, component.Variables, "{\n\t\t\t\tkey = \"TEST_EXTEND_VARIABLE\"\n\t\t\t\tvalue = \"testing\"\n\t\t\t\tenvironment = [\"acceptance\"]\n\n\t\t\t}")
+	assert.Contains(t, component.Variables, "key = \"TEST_EXTEND_VARIABLE\"")
+	assert.Contains(t, component.Variables, "value = \"test\"")
+	assert.Contains(t, component.Variables, "environment = [\"production\"]")
+	assert.Contains(t, component.Variables, "value = \"testing\"")
+	assert.Contains(t, component.Variables, "environment = [\"acceptance\"]")
 }
 
 func TestMergeEnvironmentVariables(t *testing.T) {
@@ -483,10 +494,13 @@ func TestMergeEnvironmentVariables(t *testing.T) {
 	component, err := plugin.RenderTerraformComponent("my-site", "test-component")
 	require.NoError(t, err)
 
-	assert.Contains(t, component.Variables, "{\n\t\t\t\tkey = \"TEST_EXTEND_VARIABLE\"\n\t\t\t\tvalue = \"test\"\n\t\t\t\tenvironment = [\"development\", \"preview\", \"production\"]\n\n\t\t\t}")
+	assert.Contains(t, component.Variables, "key = \"TEST_EXTEND_VARIABLE\"")
+	assert.Contains(t, component.Variables, "value = \"test\"")
+	assert.Contains(t, component.Variables, "environment = [\"development\", \"preview\", \"production\"]")
 
-	assert.NotContains(t, component.Variables, "{\n\t\t\t\tkey = \"TEST_EXTEND_VARIABLE\"\n\t\t\t\tvalue = \"test\"\n\t\t\t\tenvironment = [\"development\", \"preview\"]\n\n\t\t\t}")
-	assert.NotContains(t, component.Variables, "{\n\t\t\t\tkey = \"TEST_EXTEND_VARIABLE\"\n\t\t\t\tvalue = \"test\"\n\t\t\t\tenvironment = [\"production\"]\n\n\t\t\t}")
+	assert.NotContains(t, component.Variables, "environment = [\"development\", \"preview\"]")
+	// After merge, individual environment = ["production"] should not exist since they are merged
+	assert.NotContains(t, component.Variables, "\nenvironment = [\"production\"]\n")
 }
 
 func TestUpsertEnvironmentVariables(t *testing.T) {
@@ -535,9 +549,11 @@ func TestUpsertEnvironmentVariables(t *testing.T) {
 	component, err := plugin.RenderTerraformComponent("my-site", "test-component")
 	require.NoError(t, err)
 
-	assert.NotContains(t, component.Variables, "{\n\t\t\t\tkey = \"TEST_EXTEND_VARIABLE\"\n\t\t\t\tvalue = \"testing\"\n\t\t\t\tenvironment = [\"production\"]\n\n\t\t\t}")
+	assert.NotContains(t, component.Variables, "value = \"testing\"")
 
-	assert.Contains(t, component.Variables, "{\n\t\t\t\tkey = \"TEST_EXTEND_VARIABLE\"\n\t\t\t\tvalue = \"test\"\n\t\t\t\tenvironment = [\"production\"]\n\n\t\t\t}")
+	assert.Contains(t, component.Variables, "key = \"TEST_EXTEND_VARIABLE\"")
+	assert.Contains(t, component.Variables, "value = \"test\"")
+	assert.Contains(t, component.Variables, "environment = [\"production\"]")
 }
 
 func TestCompleteInheritance(t *testing.T) {

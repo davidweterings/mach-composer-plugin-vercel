@@ -5,3 +5,4 @@ mach-composer-plugin-*
 *.out
 
 .idea
+.claude

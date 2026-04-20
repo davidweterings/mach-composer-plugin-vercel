@@ -196,15 +196,28 @@ type VercelAuthentication struct {
 }
 
 type ProjectEnvironmentVariable struct {
-	Key         string   `mapstructure:"key"`
-	Value       string   `mapstructure:"value"`
-	Environment []string `mapstructure:"environment"`
+	Key                    string   `mapstructure:"key"`
+	Value                  string   `mapstructure:"value"`
+	Environment            []string `mapstructure:"environment"`
+	Comment                string   `mapstructure:"comment"`
+	CustomEnvironmentIDs   []string `mapstructure:"custom_environment_ids"`
+	GitBranch              string   `mapstructure:"git_branch"`
+	Sensitive              bool     `mapstructure:"sensitive"`
+	Target                 []string `mapstructure:"target"`
 }
 
 // Returns a HCL-friendly version of the list of environments which are
 // encapsulated by quotes and are comma separated
 func (c *ProjectEnvironmentVariable) DisplayEnvironments() string {
 	return helpers.SerializeToHCL("environment", c.Environment)
+}
+
+func (c *ProjectEnvironmentVariable) DisplayTarget() string {
+	return helpers.SerializeToHCL("target", c.Target)
+}
+
+func (c *ProjectEnvironmentVariable) DisplayCustomEnvironmentIDs() string {
+	return helpers.SerializeToHCL("custom_environment_ids", c.CustomEnvironmentIDs)
 }
 
 func MergeEnvironmentVariables(o []ProjectEnvironmentVariable, c []ProjectEnvironmentVariable) []ProjectEnvironmentVariable {
