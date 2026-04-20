@@ -1,7 +1,6 @@
 package internal
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -10,13 +9,29 @@ import (
 
 type Interface interface{}
 
+func stringPtr(value string) *string {
+	return &value
+}
+
+func boolPtr(value bool) *bool {
+	return &value
+}
+
 func TestSetVercelConfig(t *testing.T) {
 	// All of the below env variables code is used to bypass gojsonschema's
 	// inability to cast this to a []map[string]interface{}.
 	environmentVariables := []ProjectEnvironmentVariable{
-		{Key: "TEST_ENVIRONMENT_VARIABLE", Value: "testing", Environment: []string{}},
+		{Key: "TEST_ENVIRONMENT_VARIABLE", Value: "testing"},
 		{Key: "TEST_ENVIRONMENT_VARIABLE_2", Value: "testing", Environment: []string{"production", "preview"}},
-		{Key: "TEST_ENVIRONMENT_VARIABLE_3", Value: "secret", Environment: []string{"production"}, Sensitive: true, Comment: "A secret variable", GitBranch: "main", Target: []string{"production"}, CustomEnvironmentIDs: []string{"env_123"}},
+		{
+			Key:       "TEST_ENVIRONMENT_VARIABLE_3",
+			Value:     "testing",
+			Target:    []string{"preview"},
+			Comment:   stringPtr("Used for preview branch deploys"),
+			GitBranch: stringPtr("feature/test"),
+			Sensitive: boolPtr(false),
+		},
+		{Key: "TEST_ENVIRONMENT_VARIABLE_4", Value: "testing", CustomEnvironmentIDs: []string{"env_custom_123"}},
 	}
 
 	projectDomains := []ProjectDomain{
@@ -96,23 +111,17 @@ func TestSetVercelConfig(t *testing.T) {
 	assert.Contains(t, component.Variables, "password = \"MyPassword\"")
 
 	// Test environment variables
-
-	// Test default response
-	assert.Contains(t, component.Variables, "environment = [\"development\", \"preview\", \"production\"]")
-	// Test custom environment variables list
-	assert.Contains(t, component.Variables, "environment = [\"production\", \"preview\"]")
-
-	// Test new environment variable fields
-	assert.Contains(t, component.Variables, "sensitive = true")
-	assert.Contains(t, component.Variables, "comment = \"A secret variable\"")
-	assert.Contains(t, component.Variables, "git_branch = \"main\"")
-	assert.Contains(t, component.Variables, "target = [\"production\"]")
-	assert.Contains(t, component.Variables, "custom_environment_ids = [\"env_123\"]")
+	assert.Contains(t, component.Variables, "target = [\"development\", \"preview\", \"production\"]")
+	assert.Contains(t, component.Variables, "target = [\"preview\", \"production\"]")
+	assert.Contains(t, component.Variables, "comment = \"Used for preview branch deploys\"")
+	assert.Contains(t, component.Variables, "git_branch = \"feature/test\"")
+	assert.Contains(t, component.Variables, "sensitive = false")
+	assert.Contains(t, component.Variables, "custom_environment_ids = [\"env_custom_123\"]")
+	assert.NotContains(t, component.Variables, "environment =")
 
 	// Test domains
 	assert.Contains(t, component.Variables, "domain = \"test-domain.com\"")
 	assert.Contains(t, component.Variables, "redirect_status_code = 307")
-
 }
 
 func TestInheritance(t *testing.T) {
@@ -184,11 +193,11 @@ func TestInheritance(t *testing.T) {
 	assert.Contains(t, component.Variables, "vercel_team_id = \"test-team-override\"")
 
 	// Test whether environment variables get extended
-	assert.Contains(t, component.Variables, "environment = [\"development\", \"preview\", \"production\"]")
-	assert.Contains(t, component.Variables, "environment = [\"preview\", \"production\"]")
+	assert.Contains(t, component.Variables, "target = [\"development\", \"preview\", \"production\"]")
+	assert.Contains(t, component.Variables, "target = [\"preview\", \"production\"]")
 	assert.Contains(t, component.Variables, "deployment_type = \"standard_protection\"")
 
-	assert.Contains(t, component.Variables, "environment")
+	assert.Contains(t, component.Variables, "target")
 }
 
 func TestSiteComponentInheritance(t *testing.T) {
@@ -316,11 +325,11 @@ func TestGlobalInheritance(t *testing.T) {
 	assert.Contains(t, component.Variables, "vercel_team_id = \"test-team-override\"")
 
 	// Test whether environment variables get extended
-	assert.Contains(t, component.Variables, "environment = [\"development\", \"preview\", \"production\"]")
-	assert.Contains(t, component.Variables, "environment = [\"preview\", \"production\"]")
+	assert.Contains(t, component.Variables, "target = [\"development\", \"preview\", \"production\"]")
+	assert.Contains(t, component.Variables, "target = [\"preview\", \"production\"]")
 	assert.Contains(t, component.Variables, "deployment_type = \"all_deployments\"")
 
-	assert.Contains(t, component.Variables, "environment")
+	assert.Contains(t, component.Variables, "target")
 }
 
 func TestSitePriorityOverGlobalInheritance(t *testing.T) {
@@ -388,12 +397,12 @@ func TestSitePriorityOverGlobalInheritance(t *testing.T) {
 	assert.Contains(t, component.Variables, "vercel_team_id = \"test-team-override\"")
 
 	// Test whether environment variables get extended
-	assert.Contains(t, component.Variables, "environment = [\"development\", \"preview\", \"production\"]")
-	assert.Contains(t, component.Variables, "environment = [\"preview\", \"production\"]")
+	assert.Contains(t, component.Variables, "target = [\"development\", \"preview\", \"production\"]")
+	assert.Contains(t, component.Variables, "target = [\"preview\", \"production\"]")
 	assert.Contains(t, component.Variables, "deployment_type = \"standard_protection\"")
 	assert.Contains(t, component.Variables, "deployment_type = \"only_preview_deployments\"")
 
-	assert.Contains(t, component.Variables, "environment")
+	assert.Contains(t, component.Variables, "target")
 }
 
 func TestExtendEnvironmentVariables(t *testing.T) {
@@ -414,7 +423,7 @@ func TestExtendEnvironmentVariables(t *testing.T) {
 	}
 
 	siteEnvironmentVariables := []ProjectEnvironmentVariable{
-		{Key: "TEST_EXTEND_VARIABLE", Value: "testing", Environment: []string{"acceptance"}},
+		{Key: "TEST_EXTEND_VARIABLE", Value: "testing", CustomEnvironmentIDs: []string{"env_acceptance"}},
 	}
 	siteVariables := make([]interface{}, len(siteEnvironmentVariables))
 	for i, s := range siteEnvironmentVariables {
@@ -445,9 +454,9 @@ func TestExtendEnvironmentVariables(t *testing.T) {
 	// Should only contain the site extended variable content
 	assert.Contains(t, component.Variables, "key = \"TEST_EXTEND_VARIABLE\"")
 	assert.Contains(t, component.Variables, "value = \"test\"")
-	assert.Contains(t, component.Variables, "environment = [\"production\"]")
+	assert.Contains(t, component.Variables, "target = [\"production\"]")
 	assert.Contains(t, component.Variables, "value = \"testing\"")
-	assert.Contains(t, component.Variables, "environment = [\"acceptance\"]")
+	assert.Contains(t, component.Variables, "custom_environment_ids = [\"env_acceptance\"]")
 }
 
 func TestMergeEnvironmentVariables(t *testing.T) {
@@ -496,13 +505,10 @@ func TestMergeEnvironmentVariables(t *testing.T) {
 	component, err := plugin.RenderTerraformComponent("my-site", "test-component")
 	require.NoError(t, err)
 
-	assert.Contains(t, component.Variables, "key = \"TEST_EXTEND_VARIABLE\"")
 	assert.Contains(t, component.Variables, "value = \"test\"")
-	assert.Contains(t, component.Variables, "environment = [\"development\", \"preview\", \"production\"]")
-
-	assert.NotContains(t, component.Variables, "environment = [\"development\", \"preview\"]")
-	// After merge, individual environment = ["production"] should not exist since they are merged
-	assert.NotContains(t, component.Variables, "\nenvironment = [\"production\"]\n")
+	assert.Contains(t, component.Variables, "target = [\"development\", \"preview\", \"production\"]")
+	assert.NotContains(t, component.Variables, "target = [\"development\", \"preview\"]")
+	assert.NotContains(t, component.Variables, "target = [\"production\"]")
 }
 
 func TestUpsertEnvironmentVariables(t *testing.T) {
@@ -552,10 +558,63 @@ func TestUpsertEnvironmentVariables(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.NotContains(t, component.Variables, "value = \"testing\"")
-
-	assert.Contains(t, component.Variables, "key = \"TEST_EXTEND_VARIABLE\"")
 	assert.Contains(t, component.Variables, "value = \"test\"")
-	assert.Contains(t, component.Variables, "environment = [\"production\"]")
+	assert.Contains(t, component.Variables, "target = [\"production\"]")
+}
+
+func TestRenderTerraformComponentOmitsUnsetEnvironmentVariableFields(t *testing.T) {
+	environmentVariables := []ProjectEnvironmentVariable{
+		{Key: "DEFAULT_TARGET", Value: "testing"},
+		{Key: "CUSTOM_ONLY", Value: "testing", CustomEnvironmentIDs: []string{"env_custom_456"}},
+	}
+	variables := make([]interface{}, len(environmentVariables))
+	for i, s := range environmentVariables {
+		variables[i] = s
+	}
+
+	plugin := NewVercelPlugin()
+
+	err := plugin.SetSiteConfig("my-site", map[string]any{
+		"project_config": map[string]any{
+			"environment_variables": variables,
+		},
+	})
+	require.NoError(t, err)
+
+	component, err := plugin.RenderTerraformComponent("my-site", "test-component")
+	require.NoError(t, err)
+
+	assert.Contains(t, component.Variables, "target = [\"development\", \"preview\", \"production\"]")
+	assert.Contains(t, component.Variables, "custom_environment_ids = [\"env_custom_456\"]")
+	assert.NotContains(t, component.Variables, "environment =")
+	assert.NotContains(t, component.Variables, "comment = \"\"")
+	assert.NotContains(t, component.Variables, "git_branch = \"\"")
+	assert.NotContains(t, component.Variables, "sensitive = false")
+	assert.NotContains(t, component.Variables, "target = null")
+	assert.NotContains(t, component.Variables, "custom_environment_ids = null")
+}
+
+func TestRenderTerraformComponentRejectsNonPreviewGitBranch(t *testing.T) {
+	environmentVariables := []ProjectEnvironmentVariable{
+		{Key: "INVALID_BRANCH_TARGET", Value: "testing", Target: []string{"production"}, GitBranch: stringPtr("main")},
+	}
+	variables := make([]interface{}, len(environmentVariables))
+	for i, s := range environmentVariables {
+		variables[i] = s
+	}
+
+	plugin := NewVercelPlugin()
+
+	err := plugin.SetSiteConfig("my-site", map[string]any{
+		"project_config": map[string]any{
+			"environment_variables": variables,
+		},
+	})
+	require.NoError(t, err)
+
+	_, err = plugin.RenderTerraformComponent("my-site", "test-component")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "git_branch can only be used when target is [\"preview\"]")
 }
 
 func TestCompleteInheritance(t *testing.T) {
@@ -595,8 +654,6 @@ func TestCompleteInheritance(t *testing.T) {
 
 	component, err := plugin.RenderTerraformComponent("my-site", "test-component")
 	require.NoError(t, err)
-
-	fmt.Println(component)
 
 	assert.Contains(t, component.Variables, "vercel_project_serverless_function_region = \"fra1\"")
 	assert.Contains(t, component.Variables, "type = \"github\"")

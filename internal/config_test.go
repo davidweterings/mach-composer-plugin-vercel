@@ -21,7 +21,7 @@ func TestMergeList(t *testing.T) {
 		assert.Len(t, result, 1)
 		assert.Equal(t, "API_URL", result[0].Key)
 		assert.Equal(t, "https://api.example.com", result[0].Value)
-		assert.ElementsMatch(t, []string{"preview", "production"}, result[0].Environment)
+		assert.ElementsMatch(t, []string{"preview", "production"}, result[0].Target)
 	})
 
 	t.Run("only child variables", func(t *testing.T) {
@@ -33,7 +33,7 @@ func TestMergeList(t *testing.T) {
 		assert.Len(t, result, 1)
 		assert.Equal(t, "DEBUG", result[0].Key)
 		assert.Equal(t, "true", result[0].Value)
-		assert.ElementsMatch(t, []string{"development"}, result[0].Environment)
+		assert.ElementsMatch(t, []string{"development"}, result[0].Target)
 	})
 
 	t.Run("child overrides parent for specific environment", func(t *testing.T) {
@@ -61,8 +61,8 @@ func TestMergeList(t *testing.T) {
 			}
 		}
 
-		assert.ElementsMatch(t, []string{"production"}, prodEntry.Environment)
-		assert.ElementsMatch(t, []string{"preview"}, previewEntry.Environment)
+		assert.ElementsMatch(t, []string{"production"}, prodEntry.Target)
+		assert.ElementsMatch(t, []string{"preview"}, previewEntry.Target)
 	})
 
 	t.Run("child adds new environments to existing key", func(t *testing.T) {
@@ -78,7 +78,7 @@ func TestMergeList(t *testing.T) {
 		assert.Len(t, result, 1)
 		assert.Equal(t, "FEATURE_FLAG", result[0].Key)
 		assert.Equal(t, "true", result[0].Value)
-		assert.ElementsMatch(t, []string{"production", "preview"}, result[0].Environment)
+		assert.ElementsMatch(t, []string{"production", "preview"}, result[0].Target)
 	})
 
 	t.Run("complex case with multiple variables and environments", func(t *testing.T) {
@@ -123,11 +123,11 @@ func TestMergeList(t *testing.T) {
 			}
 		}
 
-		assert.ElementsMatch(t, []string{"production"}, apiUrlProd.Environment)
-		assert.ElementsMatch(t, []string{"preview"}, apiUrlPreview.Environment)
-		assert.ElementsMatch(t, []string{"preview", "production"}, debugFalse.Environment)
-		assert.ElementsMatch(t, []string{"development"}, debugTrue.Environment)
-		assert.ElementsMatch(t, []string{"development", "preview", "production"}, newVar.Environment)
+		assert.ElementsMatch(t, []string{"production"}, apiUrlProd.Target)
+		assert.ElementsMatch(t, []string{"preview"}, apiUrlPreview.Target)
+		assert.ElementsMatch(t, []string{"preview", "production"}, debugFalse.Target)
+		assert.ElementsMatch(t, []string{"development"}, debugTrue.Target)
+		assert.ElementsMatch(t, []string{"development", "preview", "production"}, newVar.Target)
 	})
 
 	t.Run("only parent variables with empty environment", func(t *testing.T) {
@@ -139,7 +139,7 @@ func TestMergeList(t *testing.T) {
 		assert.Len(t, result, 1)
 		assert.Equal(t, "API_URL", result[0].Key)
 		assert.Equal(t, "https://api.example.com", result[0].Value)
-		assert.ElementsMatch(t, []string{"development", "preview", "production"}, result[0].Environment)
+		assert.ElementsMatch(t, []string{"development", "preview", "production"}, result[0].Target)
 	})
 
 	t.Run("only child variables with empty environment", func(t *testing.T) {
@@ -151,7 +151,7 @@ func TestMergeList(t *testing.T) {
 		assert.Len(t, result, 1)
 		assert.Equal(t, "DEBUG", result[0].Key)
 		assert.Equal(t, "true", result[0].Value)
-		assert.ElementsMatch(t, []string{"development", "preview", "production"}, result[0].Environment)
+		assert.ElementsMatch(t, []string{"development", "preview", "production"}, result[0].Target)
 	})
 
 	t.Run("child adds new environments to existing key with empty environment", func(t *testing.T) {
@@ -167,6 +167,29 @@ func TestMergeList(t *testing.T) {
 		assert.Len(t, result, 1)
 		assert.Equal(t, "FEATURE_FLAG", result[0].Key)
 		assert.Equal(t, "true", result[0].Value)
-		assert.ElementsMatch(t, []string{"development", "preview", "production"}, result[0].Environment)
+		assert.ElementsMatch(t, []string{"development", "preview", "production"}, result[0].Target)
+	})
+
+	t.Run("custom environment ids do not default target", func(t *testing.T) {
+		child := []ProjectEnvironmentVariable{
+			{Key: "CUSTOM_ENV", Value: "true", CustomEnvironmentIDs: []string{"env_custom"}},
+		}
+
+		result := MergeEnvironmentVariables([]ProjectEnvironmentVariable{}, child)
+
+		assert.Len(t, result, 1)
+		assert.Empty(t, result[0].Target)
+		assert.ElementsMatch(t, []string{"env_custom"}, result[0].CustomEnvironmentIDs)
+	})
+
+	t.Run("target takes precedence over legacy environment", func(t *testing.T) {
+		child := []ProjectEnvironmentVariable{
+			{Key: "OVERRIDE", Value: "true", Target: []string{"preview"}, Environment: []string{"production"}},
+		}
+
+		result := MergeEnvironmentVariables([]ProjectEnvironmentVariable{}, child)
+
+		assert.Len(t, result, 1)
+		assert.ElementsMatch(t, []string{"preview"}, result[0].Target)
 	})
 }

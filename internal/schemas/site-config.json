@@ -40,8 +40,11 @@
                   "type": "string"
                 }
               },
-              "comment": {
-                "type": "string"
+              "target": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
               },
               "custom_environment_ids": {
                 "type": "array",
@@ -49,17 +52,14 @@
                   "type": "string"
                 }
               },
+              "comment": {
+                "type": "string"
+              },
               "git_branch": {
                 "type": "string"
               },
               "sensitive": {
                 "type": "boolean"
-              },
-              "target": {
-                "type": "array",
-                "items": {
-                  "type": "string"
-                }
               }
             }
           }
